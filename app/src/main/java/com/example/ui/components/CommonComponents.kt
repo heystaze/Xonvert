@@ -4,26 +4,32 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,9 +38,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.SuccessGreen
 
@@ -90,7 +100,9 @@ fun PresetSizeRow(
                 label = {
                     Text(
                         text = label,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 },
                 leadingIcon = if (isSelected) {
@@ -131,7 +143,7 @@ fun CustomSizeInput(
             modifier = Modifier
                 .weight(1f)
                 .testTag("custom_size_input"),
-            label = { Text("Target Max Size") },
+            label = { Text("Target Max Size", maxLines = 1, overflow = TextOverflow.Ellipsis) },
             placeholder = { Text("e.g. 100") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
@@ -183,7 +195,9 @@ private fun UnitChip(
             text = text,
             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -204,7 +218,122 @@ fun SavingsBadge(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = SuccessGreen
+            color = SuccessGreen,
+            maxLines = 1,
+            softWrap = false
         )
+    }
+}
+
+/**
+ * Responsive secondary actions row for compression result cards (Open, Share, New).
+ * Avoids default wide OutlinedButton horizontal padding that clips labels on narrow phones.
+ */
+@Composable
+fun ResultSecondaryActionsRow(
+    onOpen: () -> Unit,
+    onShare: () -> Unit,
+    onNew: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val isCompactWidth = maxWidth < 340.dp
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ResultActionButton(
+                label = "Open",
+                contentDesc = "Open output file",
+                icon = Icons.AutoMirrored.Filled.OpenInNew,
+                stackVertically = isCompactWidth,
+                testTag = "result_action_open",
+                onClick = onOpen,
+                modifier = Modifier.weight(1f)
+            )
+            ResultActionButton(
+                label = "Share",
+                contentDesc = "Share output file",
+                icon = Icons.Default.Share,
+                stackVertically = isCompactWidth,
+                testTag = "result_action_share",
+                onClick = onShare,
+                modifier = Modifier.weight(1f)
+            )
+            ResultActionButton(
+                label = "New",
+                contentDesc = "Select a new file",
+                icon = Icons.Default.Refresh,
+                stackVertically = isCompactWidth,
+                testTag = "result_action_new",
+                onClick = onNew,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ResultActionButton(
+    label: String,
+    contentDesc: String,
+    icon: ImageVector,
+    stackVertically: Boolean,
+    testTag: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .semantics { contentDescription = contentDesc }
+            .testTag(testTag),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+    ) {
+        if (stackVertically) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }

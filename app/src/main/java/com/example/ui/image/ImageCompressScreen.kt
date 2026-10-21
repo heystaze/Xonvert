@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,17 +28,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CropRotate
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PhotoSizeSelectLarge
-import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -57,10 +56,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -76,6 +72,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -85,11 +83,16 @@ import com.example.engine.ImageResizeMode
 import com.example.engine.ResizePreset
 import com.example.ui.components.CustomSizeInput
 import com.example.ui.components.PresetSizeRow
+import com.example.ui.components.ResultSecondaryActionsRow
 import com.example.ui.components.SavingsBadge
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.WarningAmber
 import com.example.util.FormatUtils
 
+/**
+ * Dedicated screen for Target Size Image Compression (opened from "Compress Image" on Home).
+ * No redundant tab switcher is shown.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ImageCompressScreen(
@@ -100,7 +103,6 @@ fun ImageCompressScreen(
     val context = LocalContext.current
     BackHandler { onNavigateBack() }
 
-    val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
     val customPresets by viewModel.customImagePresets.collectAsStateWithLifecycle()
     val selectedUri by viewModel.selectedUri.collectAsStateWithLifecycle()
     val metadata by viewModel.metadata.collectAsStateWithLifecycle()
@@ -111,15 +113,6 @@ fun ImageCompressScreen(
     val resizePreset by viewModel.resizePreset.collectAsStateWithLifecycle()
     val preserveAspectRatio by viewModel.preserveAspectRatio.collectAsStateWithLifecycle()
     val allowDimensionDownscaling by viewModel.allowDimensionDownscaling.collectAsStateWithLifecycle()
-
-    // Resize & Convert states
-    val resizeMode by viewModel.resizeMode.collectAsStateWithLifecycle()
-    val scalePercentage by viewModel.scalePercentage.collectAsStateWithLifecycle()
-    val customWidthText by viewModel.customWidthText.collectAsStateWithLifecycle()
-    val customHeightText by viewModel.customHeightText.collectAsStateWithLifecycle()
-    val rotationDegrees by viewModel.rotationDegrees.collectAsStateWithLifecycle()
-    val convertFormat by viewModel.convertFormat.collectAsStateWithLifecycle()
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var showSavePresetDialog by remember { mutableStateOf(false) }
@@ -164,9 +157,11 @@ fun ImageCompressScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (activeTab == ImageToolTab.COMPRESS) "Compress Image" else "Resize & Convert Image",
+                        text = "Compress Image",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -176,7 +171,7 @@ fun ImageCompressScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back to Home"
                         )
                     }
                 },
@@ -201,32 +196,11 @@ fun ImageCompressScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .testTag("image_compress_content"),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Mode Switcher Tabs
-            item {
-                TabRow(
-                    selectedTabIndex = activeTab.ordinal,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
-                ) {
-                    Tab(
-                        selected = activeTab == ImageToolTab.COMPRESS,
-                        onClick = { viewModel.setActiveTab(ImageToolTab.COMPRESS) },
-                        text = { Text("Target Size Compress", fontWeight = FontWeight.SemiBold) },
-                        modifier = Modifier.testTag("tab_image_compress")
-                    )
-                    Tab(
-                        selected = activeTab == ImageToolTab.RESIZE_CONVERT,
-                        onClick = { viewModel.setActiveTab(ImageToolTab.RESIZE_CONVERT) },
-                        text = { Text("Resize & Convert", fontWeight = FontWeight.SemiBold) },
-                        modifier = Modifier.testTag("tab_image_resize_convert")
-                    )
-                }
-            }
-
             if (uiState is ImageUiState.Compressing) {
                 val state = uiState as ImageUiState.Compressing
                 item {
@@ -266,46 +240,20 @@ fun ImageCompressScreen(
             } else if (uiState is ImageUiState.Error) {
                 val state = uiState as ImageUiState.Error
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = "Error",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Operation Failed",
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = state.message,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            OutlinedButton(
-                                onClick = { viewModel.clearSelection() },
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("Select Another Image")
-                            }
-                        }
-                    }
+                    ImageErrorCard(
+                        message = state.message,
+                        onReset = { viewModel.clearSelection() }
+                    )
                 }
             }
 
             if (selectedUri == null) {
                 item {
-                    PickImagePlaceholderCard(onPickImage = { imagePickerLauncher.launch("image/*") })
+                    PickImagePlaceholderCard(
+                        title = "Select an Image to Compress",
+                        subtitle = "Supports JPEG, PNG, WebP • Target exact KB limits",
+                        onPickImage = { imagePickerLauncher.launch("image/*") }
+                    )
                 }
             } else if (uiState !is ImageUiState.Finished && uiState !is ImageUiState.Compressing) {
                 item {
@@ -318,417 +266,277 @@ fun ImageCompressScreen(
                     }
                 }
 
-                if (activeTab == ImageToolTab.COMPRESS) {
-                    // Custom Presets Card (Part 7)
-                    if (customPresets.isNotEmpty()) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
+                // Saved Custom Presets Card
+                if (customPresets.isNotEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.align(Alignment.CenterVertically)
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.BookmarkBorder,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "Saved Presets",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                        TextButton(onClick = { showSavePresetDialog = true }) {
-                                            Icon(
-                                                imageVector = Icons.Default.BookmarkAdd,
-                                                contentDescription = "Save Current Preset",
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Save Current", style = MaterialTheme.typography.labelMedium)
-                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.BookmarkBorder,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Saved Presets",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
-
-                                    FlowRow(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    OutlinedButton(
+                                        onClick = { showSavePresetDialog = true },
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.heightIn(min = 36.dp)
                                     ) {
-                                        customPresets.forEach { preset ->
-                                            FilterChip(
-                                                selected = targetSizeBytes == preset.targetSizeBytes,
-                                                onClick = { viewModel.applyCustomPreset(preset) },
-                                                label = {
-                                                    Text("${preset.name} (${FormatUtils.formatBytes(preset.targetSizeBytes)})")
-                                                },
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Target Size Card
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.PhotoSizeSelectLarge,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Target Maximum Size",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                PresetSizeRow(
-                                    presets = imagePresets,
-                                    selectedSizeBytes = targetSizeBytes,
-                                    onPresetSelected = { viewModel.setTargetSizePreset(it) }
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                CustomSizeInput(
-                                    value = customSizeText,
-                                    onValueChange = { viewModel.setCustomSize(it, isMbUnit) },
-                                    isMb = isMbUnit,
-                                    onUnitToggle = { viewModel.setCustomSize(customSizeText, it) }
-                                )
-                            }
-                        }
-                    }
-
-                    // Advanced Resize & Format Controls
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Tune,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Resolution & Format Controls",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Text(
-                                    text = "Resolution Ceiling",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    listOf(
-                                        ResizePreset.ORIGINAL to "Original",
-                                        ResizePreset.SCALE_1920 to "1920p",
-                                        ResizePreset.SCALE_1280 to "1280p",
-                                        ResizePreset.SCALE_800 to "800p"
-                                    ).forEach { (preset, label) ->
-                                        FilterChip(
-                                            selected = resizePreset == preset,
-                                            onClick = { viewModel.setResizePreset(preset) },
-                                            label = { Text(label) },
-                                            shape = RoundedCornerShape(8.dp)
+                                        Icon(
+                                            imageVector = Icons.Default.BookmarkAdd,
+                                            contentDescription = "Save Current Preset",
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "Preserve Aspect Ratio",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = "Prevents distortion when resizing",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
+                                            text = "Save Current",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            maxLines = 1,
+                                            softWrap = false
                                         )
                                     }
-                                    Switch(
-                                        checked = preserveAspectRatio,
-                                        onCheckedChange = { viewModel.setPreserveAspectRatio(it) }
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Adaptive Downscaling",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = "Reduce resolution if quality alone cannot reach target",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                    Switch(
-                                        checked = allowDimensionDownscaling,
-                                        onCheckedChange = { viewModel.setAllowDimensionDownscaling(it) }
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Text(
-                                    text = "Output Format",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    listOf(
-                                        ImageOutputFormat.AUTO to "Auto",
-                                        ImageOutputFormat.WEBP to "WebP",
-                                        ImageOutputFormat.JPEG to "JPEG",
-                                        ImageOutputFormat.PNG to "PNG"
-                                    ).forEach { (fmt, label) ->
-                                        FilterChip(
-                                            selected = selectedFormat == fmt,
-                                            onClick = { viewModel.setFormat(fmt) },
-                                            label = { Text(label) },
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    item {
-                        Button(
-                            onClick = { viewModel.startCompression() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(54.dp)
-                                .testTag("start_compress_button"),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(
-                                text = "Compress to ${FormatUtils.formatBytes(targetSizeBytes)}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                } else {
-                    // PART 8: RESIZE, ROTATE & CONVERT TAB
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.CropRotate,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Resize, Rotate & Format Conversion",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    FilterChip(
-                                        selected = resizeMode == ImageResizeMode.PERCENTAGE,
-                                        onClick = { viewModel.setResizeMode(ImageResizeMode.PERCENTAGE) },
-                                        label = { Text("By Percentage") }
-                                    )
-                                    FilterChip(
-                                        selected = resizeMode == ImageResizeMode.PIXELS,
-                                        onClick = { viewModel.setResizeMode(ImageResizeMode.PIXELS) },
-                                        label = { Text("By Pixels (W × H)") }
-                                    )
                                 }
 
                                 Spacer(modifier = Modifier.height(10.dp))
 
-                                if (resizeMode == ImageResizeMode.PERCENTAGE) {
-                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        listOf(25, 50, 75, 100).forEach { pct ->
-                                            FilterChip(
-                                                selected = scalePercentage == pct,
-                                                onClick = { viewModel.setScalePercentage(pct) },
-                                                label = { Text("$pct%") }
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        OutlinedTextField(
-                                            value = customWidthText,
-                                            onValueChange = { viewModel.setCustomWidthText(it) },
-                                            label = { Text("Width (px)") },
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            singleLine = true,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        OutlinedTextField(
-                                            value = customHeightText,
-                                            onValueChange = { viewModel.setCustomHeightText(it) },
-                                            label = { Text("Height (px)") },
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            singleLine = true,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Lock Aspect Ratio",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        Switch(
-                                            checked = preserveAspectRatio,
-                                            onCheckedChange = { viewModel.setPreserveAspectRatio(it) }
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                // Rotation Controls
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text(
-                                        text = "Rotation: ${rotationDegrees}°",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    OutlinedButton(
-                                        onClick = { viewModel.rotate90Clockwise() },
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.testTag("rotate_image_button")
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.RotateRight,
-                                            contentDescription = "Rotate 90 degrees",
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Rotate +90°")
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Text(
-                                    text = "Convert Output Format",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf(
-                                        ImageOutputFormat.JPEG to "JPEG (.jpg)",
-                                        ImageOutputFormat.PNG to "PNG (.png)",
-                                        ImageOutputFormat.WEBP to "WebP (.webp)",
-                                        ImageOutputFormat.AUTO to "Keep Original"
-                                    ).forEach { (fmt, label) ->
+                                    customPresets.forEach { preset ->
                                         FilterChip(
-                                            selected = convertFormat == fmt,
-                                            onClick = { viewModel.setConvertFormat(fmt) },
-                                            label = { Text(label) }
+                                            selected = targetSizeBytes == preset.targetSizeBytes,
+                                            onClick = { viewModel.applyCustomPreset(preset) },
+                                            label = {
+                                                Text(
+                                                    text = "${preset.name} (${FormatUtils.formatBytes(preset.targetSizeBytes)})",
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            },
+                                            shape = RoundedCornerShape(10.dp)
                                         )
                                     }
                                 }
                             }
                         }
                     }
+                }
 
-                    item {
-                        Button(
-                            onClick = { viewModel.startResizeAndConvert() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(54.dp)
-                                .testTag("start_resize_convert_button"),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(
-                                text = "Apply Resize & Convert",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                // Target Size Card
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoSizeSelectLarge,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Target Maximum Size",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            PresetSizeRow(
+                                presets = imagePresets,
+                                selectedSizeBytes = targetSizeBytes,
+                                onPresetSelected = { viewModel.setTargetSizePreset(it) }
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            CustomSizeInput(
+                                value = customSizeText,
+                                onValueChange = { viewModel.setCustomSize(it, isMbUnit) },
+                                isMb = isMbUnit,
+                                onUnitToggle = { viewModel.setCustomSize(customSizeText, it) }
                             )
                         }
+                    }
+                }
+
+                // Advanced Resize & Format Controls
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Tune,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Resolution & Format Controls",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                text = "Resolution Ceiling",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    ResizePreset.ORIGINAL to "Original",
+                                    ResizePreset.SCALE_1920 to "1920p",
+                                    ResizePreset.SCALE_1280 to "1280p",
+                                    ResizePreset.SCALE_800 to "800p"
+                                ).forEach { (preset, label) ->
+                                    FilterChip(
+                                        selected = resizePreset == preset,
+                                        onClick = { viewModel.setResizePreset(preset) },
+                                        label = { Text(label, maxLines = 1, softWrap = false) },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                    Text(
+                                        text = "Preserve Aspect Ratio",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "Prevents distortion when resizing",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                                Switch(
+                                    checked = preserveAspectRatio,
+                                    onCheckedChange = { viewModel.setPreserveAspectRatio(it) }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                    Text(
+                                        text = "Adaptive Downscaling",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "Reduce resolution if quality alone cannot reach target",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                                Switch(
+                                    checked = allowDimensionDownscaling,
+                                    onCheckedChange = { viewModel.setAllowDimensionDownscaling(it) }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Output Format",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    ImageOutputFormat.AUTO to "Auto",
+                                    ImageOutputFormat.WEBP to "WebP",
+                                    ImageOutputFormat.JPEG to "JPEG",
+                                    ImageOutputFormat.PNG to "PNG"
+                                ).forEach { (fmt, label) ->
+                                    FilterChip(
+                                        selected = selectedFormat == fmt,
+                                        onClick = { viewModel.setFormat(fmt) },
+                                        label = { Text(label, maxLines = 1, softWrap = false) },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Button(
+                        onClick = { viewModel.startCompression() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 54.dp)
+                            .testTag("start_compress_button"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text(
+                            text = "Compress to ${FormatUtils.formatBytes(targetSizeBytes)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -785,8 +593,393 @@ fun ImageCompressScreen(
     }
 }
 
+/**
+ * Dedicated screen for Image Resize, Rotation & Format Conversion
+ * (opened directly from "Resize & Convert" on the Home screen, without redundant tabs).
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun PickImagePlaceholderCard(onPickImage: () -> Unit) {
+fun ImageResizeConvertScreen(
+    viewModel: ImageCompressViewModel,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    BackHandler { onNavigateBack() }
+
+    val selectedUri by viewModel.selectedUri.collectAsStateWithLifecycle()
+    val metadata by viewModel.metadata.collectAsStateWithLifecycle()
+    val preserveAspectRatio by viewModel.preserveAspectRatio.collectAsStateWithLifecycle()
+    val resizeMode by viewModel.resizeMode.collectAsStateWithLifecycle()
+    val scalePercentage by viewModel.scalePercentage.collectAsStateWithLifecycle()
+    val customWidthText by viewModel.customWidthText.collectAsStateWithLifecycle()
+    val customHeightText by viewModel.customHeightText.collectAsStateWithLifecycle()
+    val rotationDegrees by viewModel.rotationDegrees.collectAsStateWithLifecycle()
+    val convertFormat by viewModel.convertFormat.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.onImageSelected(uri)
+        }
+    }
+
+    var pendingSaveResult by remember { mutableStateOf<ImageCompressResult?>(null) }
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("image/*")
+    ) { destUri ->
+        val res = pendingSaveResult
+        if (destUri != null && res != null) {
+            val ok = viewModel.saveOutputFileToUri(context, destUri, res)
+            if (ok) {
+                Toast.makeText(context, "Saved transformed image!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Failed to save image.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Resize & Convert",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.testTag("image_resize_back_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to Home"
+                        )
+                    }
+                },
+                actions = {
+                    if (selectedUri != null && uiState !is ImageUiState.Compressing) {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear Selection"
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = modifier
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .testTag("image_resize_convert_content"),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (uiState is ImageUiState.Compressing) {
+                val state = uiState as ImageUiState.Compressing
+                item {
+                    CompressingCard(
+                        step = state.step,
+                        iteration = state.iteration,
+                        maxIterations = state.maxIterations,
+                        onCancel = { viewModel.cancelCompression() }
+                    )
+                }
+            } else if (uiState is ImageUiState.Finished) {
+                val state = uiState as ImageUiState.Finished
+                item {
+                    ImageResultCard(
+                        result = state.result,
+                        onOpen = {
+                            runCatching {
+                                val openIntent = viewModel.createOpenIntent(context, state.result)
+                                context.startActivity(Intent.createChooser(openIntent, "Open Output Image"))
+                            }.onFailure {
+                                Toast.makeText(context, "No viewer app found for this image.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onSave = {
+                            pendingSaveResult = state.result
+                            val ext = state.result.finalFormat.extension.ifEmpty { "jpg" }
+                            val base = state.result.originalMetadata.fileName.substringBeforeLast(".")
+                            saveFileLauncher.launch("${base}_xonvert.$ext")
+                        },
+                        onShare = {
+                            val intent = viewModel.createShareIntent(context, state.result)
+                            context.startActivity(Intent.createChooser(intent, "Share Image"))
+                        },
+                        onCompressAnother = { viewModel.clearSelection() }
+                    )
+                }
+            } else if (uiState is ImageUiState.Error) {
+                val state = uiState as ImageUiState.Error
+                item {
+                    ImageErrorCard(
+                        message = state.message,
+                        onReset = { viewModel.clearSelection() }
+                    )
+                }
+            }
+
+            if (selectedUri == null) {
+                item {
+                    PickImagePlaceholderCard(
+                        title = "Select an Image to Resize or Convert",
+                        subtitle = "Scale by % or exact pixels, rotate, and convert between JPEG, PNG & WebP",
+                        onPickImage = { imagePickerLauncher.launch("image/*") }
+                    )
+                }
+            } else if (uiState !is ImageUiState.Finished && uiState !is ImageUiState.Compressing) {
+                item {
+                    metadata?.let { meta ->
+                        SelectedImagePreviewCard(
+                            uri = selectedUri!!,
+                            metadata = meta,
+                            onChangeImage = { imagePickerLauncher.launch("image/*") }
+                        )
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CropRotate,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Resize, Rotate & Format Conversion",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                FilterChip(
+                                    selected = resizeMode == ImageResizeMode.PERCENTAGE,
+                                    onClick = { viewModel.setResizeMode(ImageResizeMode.PERCENTAGE) },
+                                    label = { Text("By Percentage", maxLines = 1, softWrap = false) }
+                                )
+                                FilterChip(
+                                    selected = resizeMode == ImageResizeMode.PIXELS,
+                                    onClick = { viewModel.setResizeMode(ImageResizeMode.PIXELS) },
+                                    label = { Text("By Pixels (W × H)", maxLines = 1, softWrap = false) }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            if (resizeMode == ImageResizeMode.PERCENTAGE) {
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    listOf(25, 50, 75, 100).forEach { pct ->
+                                        FilterChip(
+                                            selected = scalePercentage == pct,
+                                            onClick = { viewModel.setScalePercentage(pct) },
+                                            label = { Text("$pct%", maxLines = 1, softWrap = false) }
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    OutlinedTextField(
+                                        value = customWidthText,
+                                        onValueChange = { viewModel.setCustomWidthText(it) },
+                                        label = { Text("Width (px)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedTextField(
+                                        value = customHeightText,
+                                        onValueChange = { viewModel.setCustomHeightText(it) },
+                                        label = { Text("Height (px)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Lock Aspect Ratio",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f).padding(end = 12.dp)
+                                    )
+                                    Switch(
+                                        checked = preserveAspectRatio,
+                                        onCheckedChange = { viewModel.setPreserveAspectRatio(it) }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Rotation Controls
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Rotation: ${rotationDegrees}°",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                                OutlinedButton(
+                                    onClick = { viewModel.rotate90Clockwise() },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                    modifier = Modifier.testTag("rotate_image_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.RotateRight,
+                                        contentDescription = "Rotate 90 degrees",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Rotate +90°", maxLines = 1, softWrap = false)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                text = "Convert Output Format",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    ImageOutputFormat.JPEG to "JPEG (.jpg)",
+                                    ImageOutputFormat.PNG to "PNG (.png)",
+                                    ImageOutputFormat.WEBP to "WebP (.webp)",
+                                    ImageOutputFormat.AUTO to "Keep Original"
+                                ).forEach { (fmt, label) ->
+                                    FilterChip(
+                                        selected = convertFormat == fmt,
+                                        onClick = { viewModel.setConvertFormat(fmt) },
+                                        label = { Text(label, maxLines = 1, softWrap = false) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Button(
+                        onClick = { viewModel.startResizeAndConvert() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 54.dp)
+                            .testTag("start_resize_convert_button"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text(
+                            text = "Apply Resize & Convert",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImageErrorCard(
+    message: String,
+    onReset: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Error",
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Operation Failed",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onReset,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Select Another Image")
+            }
+        }
+    }
+}
+
+@Composable
+fun PickImagePlaceholderCard(
+    title: String = "Select an Image",
+    subtitle: String = "Supports JPEG, PNG, WebP • Preserves EXIF & Transparency",
+    onPickImage: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -801,7 +994,7 @@ fun PickImagePlaceholderCard(onPickImage: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(32.dp),
+                .padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Surface(
@@ -822,18 +1015,20 @@ fun PickImagePlaceholderCard(onPickImage: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Select an Image",
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Supports JPEG, PNG, WebP • Preserves EXIF & Transparency",
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -884,16 +1079,17 @@ fun SelectedImagePreviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
                     Text(
                         text = metadata.fileName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${FormatUtils.formatBytes(metadata.sizeBytes)} • ${metadata.width}×${metadata.height}px • ${if (metadata.hasAlpha) "Alpha Transparency" else "Opaque"}",
+                        text = "${FormatUtils.formatBytes(metadata.sizeBytes)} • ${metadata.width}×${metadata.height}px • ${if (metadata.hasAlpha) "Alpha" else "Opaque"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -901,9 +1097,10 @@ fun SelectedImagePreviewCard(
 
                 OutlinedButton(
                     onClick = onChangeImage,
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Text("Change")
+                    Text("Change", maxLines = 1, softWrap = false)
                 }
             }
         }
@@ -946,7 +1143,8 @@ fun CompressingCard(
             Text(
                 text = step,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1013,13 +1211,13 @@ fun ImageResultCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Output Preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .height(170.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -1032,7 +1230,7 @@ fun ImageResultCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Surface(
                 shape = RoundedCornerShape(14.dp),
@@ -1042,11 +1240,14 @@ fun ImageResultCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
                             text = "Original",
                             style = MaterialTheme.typography.labelMedium,
@@ -1056,12 +1257,14 @@ fun ImageResultCard(
                         Text(
                             text = FormatUtils.formatBytes(result.originalMetadata.sizeBytes),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                         Text(
                             text = "${result.originalMetadata.width}×${result.originalMetadata.height}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
+                            color = MaterialTheme.colorScheme.outline,
+                            textAlign = TextAlign.Center
                         )
                     }
 
@@ -1069,10 +1272,14 @@ fun ImageResultCard(
                         percentage = FormatUtils.calculateSavingsPercentage(
                             result.originalMetadata.sizeBytes,
                             result.outputBytes
-                        )
+                        ),
+                        modifier = Modifier.padding(horizontal = 6.dp)
                     )
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
                             text = "Output",
                             style = MaterialTheme.typography.labelMedium,
@@ -1083,12 +1290,14 @@ fun ImageResultCard(
                             text = FormatUtils.formatBytes(result.outputBytes),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
                         )
                         Text(
                             text = "${result.outputWidth}×${result.outputHeight} (${result.finalFormat.extension.uppercase()})",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -1100,50 +1309,23 @@ fun ImageResultCard(
                 onClick = onSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .heightIn(min = 50.dp)
                     .testTag("save_compressed_file_button"),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Save to Device", fontWeight = FontWeight.Bold)
+                Text("Save to Device", fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onOpen,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Open")
-                }
-
-                OutlinedButton(
-                    onClick = onShare,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Share")
-                }
-
-                OutlinedButton(
-                    onClick = onCompressAnother,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("New")
-                }
-            }
+            ResultSecondaryActionsRow(
+                onOpen = onOpen,
+                onShare = onShare,
+                onNew = onCompressAnother
+            )
         }
     }
 }

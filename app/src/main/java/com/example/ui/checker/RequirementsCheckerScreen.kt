@@ -25,9 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.engine.ImageCompressionEngine
 import com.example.engine.PdfCompressionEngine
@@ -377,12 +378,14 @@ fun RequirementsCheckerScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(14.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = if (selectedUri == null) "2. Select File to Inspect" else fileName,
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = if (selectedUri == null) {
@@ -402,11 +405,17 @@ fun RequirementsCheckerScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         OutlinedButton(
                             onClick = { filePickerLauncher.launch("*/*") },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Text(if (selectedUri == null) "Browse" else "Change")
+                            Text(
+                                text = if (selectedUri == null) "Browse" else "Change",
+                                maxLines = 1,
+                                softWrap = false
+                            )
                         }
                     }
                 }
@@ -497,7 +506,7 @@ fun RequirementsCheckerScreen(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {
-                                    Icon(imageVector = Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Fix in Compressor", fontWeight = FontWeight.Bold)
                                 }

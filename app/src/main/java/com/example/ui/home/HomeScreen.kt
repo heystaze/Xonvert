@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,15 +24,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.automirrored.filled.MergeType
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.MergeType
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -40,6 +42,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,12 +56,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -270,7 +273,7 @@ fun HomeScreen(
                     CompactUtilityCard(
                         title = "PDF Utilities",
                         subtitle = "Merge, Split, Reorder & Img→PDF",
-                        icon = Icons.Default.MergeType,
+                        icon = Icons.AutoMirrored.Filled.MergeType,
                         testTag = "action_pdf_utilities",
                         onClick = onNavigateToPdfUtilities,
                         modifier = Modifier.weight(1f)
@@ -282,7 +285,7 @@ fun HomeScreen(
                 ActionCard(
                     title = "Document Requirements Checker",
                     subtitle = "Check if a file passes custom size, format & dimension rules",
-                    icon = Icons.Default.FactCheck,
+                    icon = Icons.AutoMirrored.Filled.FactCheck,
                     badgeText = "Validator",
                     testTag = "action_requirements_checker",
                     onClick = onNavigateToRequirementsChecker
@@ -421,20 +424,22 @@ fun CompactUtilityCard(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ActionCard(
     title: String,
@@ -479,23 +484,29 @@ fun ActionCard(
             Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.align(Alignment.CenterVertically)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterVertically)
                     ) {
                         Text(
                             text = badgeText,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -508,7 +519,7 @@ fun ActionCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -532,21 +543,27 @@ fun StatsCard(stats: HomeStats) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+                .padding(horizontal = 12.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
                     text = FormatUtils.formatBytes(stats.totalBytesSaved),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Space Saved",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
 
@@ -557,17 +574,23 @@ fun StatsCard(stats: HomeStats) {
                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             )
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
                     text = "${stats.totalCount}",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
                 )
                 Text(
                     text = "Files Processed",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
 
@@ -578,23 +601,30 @@ fun StatsCard(stats: HomeStats) {
                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             )
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
                     text = "-${stats.averageSavingsPercent}%",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = SuccessGreen
+                    color = SuccessGreen,
+                    maxLines = 1
                 )
                 Text(
                     text = "Avg Reduction",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HistoryItemCard(
     record: CompressionRecord,
@@ -652,24 +682,17 @@ fun HistoryItemCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         Text(
-                            text = FormatUtils.formatBytes(record.originalSizeBytes),
+                            text = "${FormatUtils.formatBytes(record.originalSizeBytes)} → ${FormatUtils.formatBytes(record.compressedSizeBytes)}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.align(Alignment.CenterVertically)
                         )
-                        Text(
-                            text = " → ",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                        Text(
-                            text = FormatUtils.formatBytes(record.compressedSizeBytes),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
                         SavingsBadge(percentage = record.savingsPercentage)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
@@ -703,61 +726,61 @@ fun HistoryItemCard(
                         }
                     }
                 }
+            }
 
-                // Action Row: Open, Compress Again, Share, Delete (Part 3)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onOpen,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("open_history_${record.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.OpenInNew,
-                            contentDescription = "Open ${record.fileName}",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = onCompressAgain,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("compress_again_history_${record.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Compress again ${record.fileName}",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = onShare,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("share_history_${record.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share ${record.fileName}",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("delete_history_${record.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete ${record.fileName}",
-                            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Dedicated bottom action row so file metadata above is never squeezed
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onOpen,
+                    modifier = Modifier.testTag("open_history_${record.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open ${record.fileName}",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onCompressAgain,
+                    modifier = Modifier.testTag("compress_again_history_${record.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Compress again ${record.fileName}",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier.testTag("share_history_${record.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share ${record.fileName}",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.testTag("delete_history_${record.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Delete ${record.fileName}",
+                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.85f),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }

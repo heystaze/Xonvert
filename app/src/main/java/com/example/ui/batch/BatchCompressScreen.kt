@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -70,7 +72,7 @@ import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.WarningAmber
 import com.example.util.FormatUtils
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BatchCompressScreen(
     viewModel: BatchCompressViewModel,
@@ -185,29 +187,32 @@ fun BatchCompressScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
+                            FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
                                     text = "Queue: ${items.size} File(s)",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
                                 )
                                 if (!isProcessing) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         OutlinedButton(
                                             onClick = { batchImagePickerLauncher.launch("image/*") },
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                         ) {
-                                            Text("Images")
+                                            Text("Images", maxLines = 1, softWrap = false)
                                         }
                                         OutlinedButton(
                                             onClick = { batchImagePickerLauncher.launch("application/pdf") },
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                         ) {
-                                            Text("PDFs")
+                                            Text("PDFs", maxLines = 1, softWrap = false)
                                         }
                                     }
                                 }

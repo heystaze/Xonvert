@@ -2,18 +2,23 @@ package com.example.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -34,10 +40,12 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +55,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -59,8 +66,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.AppearanceSettings
@@ -136,7 +151,7 @@ fun SettingsScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // PART 2: APPEARANCE SECTION
+            // APPEARANCE SECTION
             item {
                 Text(
                     text = "Appearance",
@@ -171,40 +186,17 @@ fun SettingsScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                        // Theme Mode Options: System default, Light, Dark
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            ThemeMode.values().forEach { mode ->
-                                val selected = appearanceSettings.themeMode == mode
-                                val icon = when (mode) {
-                                    ThemeMode.SYSTEM -> Icons.Default.SettingsBrightness
-                                    ThemeMode.LIGHT -> Icons.Default.LightMode
-                                    ThemeMode.DARK -> Icons.Default.DarkMode
-                                }
-                                FilterChip(
-                                    selected = selected,
-                                    onClick = { onThemeModeChanged(mode) },
-                                    label = { Text(mode.displayName) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    modifier = Modifier.testTag("theme_mode_${mode.name.lowercase()}"),
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                            }
-                        }
+                        // Balanced 3-Option Responsive Selector: System, Light, Dark
+                        ThemeModeSelector(
+                            selectedMode = appearanceSettings.themeMode,
+                            onModeSelected = onThemeModeChanged
+                        )
 
                         // Dark Theme Styles when Dark mode is selected
                         AnimatedVisibility(visible = appearanceSettings.themeMode == ThemeMode.DARK) {
-                            Column(modifier = Modifier.padding(top = 16.dp)) {
+                            Column(modifier = Modifier.padding(top = 18.dp)) {
                                 Text(
                                     text = "Dark Theme Style",
                                     style = MaterialTheme.typography.titleSmall,
@@ -233,12 +225,11 @@ fun SettingsScreen(
                 }
             }
 
-            // PART 7: CUSTOM COMPRESSION PRESETS
+            // SAVED COMPRESSION PRESETS HEADER (Responsive 2-row layout)
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
                         text = "Saved Compression Presets",
@@ -246,33 +237,63 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Row {
-                        TextButton(
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
                             onClick = onResetPresets,
-                            modifier = Modifier.testTag("reset_presets_button")
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .heightIn(min = 40.dp)
+                                .testTag("reset_presets_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Reset Default Presets",
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Reset", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Reset",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false
+                            )
                         }
-                        TextButton(
+
+                        FilledTonalButton(
                             onClick = {
                                 editingPreset = null
                                 showPresetDialog = true
                             },
-                            modifier = Modifier.testTag("add_preset_button")
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            modifier = Modifier
+                                .heightIn(min = 40.dp)
+                                .testTag("add_preset_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add Preset",
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Add",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
+                            )
                         }
                     }
                 }
@@ -297,7 +318,7 @@ fun SettingsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
+                                        .padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
@@ -307,11 +328,13 @@ fun SettingsScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Column(modifier = Modifier.weight(1f).padding(end = 6.dp)) {
                                         Text(
                                             text = "${preset.name} — ${FormatUtils.formatBytes(preset.targetSizeBytes)}",
                                             style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             text = if (preset.targetType == "PDF") {
@@ -328,7 +351,7 @@ fun SettingsScreen(
                                             editingPreset = preset
                                             showPresetDialog = true
                                         },
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(40.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Edit,
@@ -338,7 +361,7 @@ fun SettingsScreen(
                                     }
                                     IconButton(
                                         onClick = { onDeletePreset(preset.id) },
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(40.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.DeleteOutline,
@@ -356,7 +379,7 @@ fun SettingsScreen(
                 }
             }
 
-            // About & Open Source Section (Retained per Part 1 & Part 13)
+            // About & Open Source Section
             item {
                 Text(
                     text = "About & Open Source",
@@ -435,6 +458,164 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * Balanced 3-option Theme Mode selector ("System", "Light", "Dark").
+ * Uses three equal-width selection cards on standard/compact phone widths,
+ * or stacks vertically on ultra-narrow (< 240dp) widths so no option is ever squeezed.
+ */
+@Composable
+private fun ThemeModeSelector(
+    selectedMode: ThemeMode,
+    onModeSelected: (ThemeMode) -> Unit
+) {
+    val options = listOf(
+        Triple(ThemeMode.SYSTEM, "System", Icons.Default.SettingsBrightness),
+        Triple(ThemeMode.LIGHT, "Light", Icons.Default.LightMode),
+        Triple(ThemeMode.DARK, "Dark", Icons.Default.DarkMode)
+    )
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val stackVertically = maxWidth < 240.dp
+
+        if (stackVertically) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                options.forEach { (mode, shortLabel, icon) ->
+                    ThemeModeOptionCard(
+                        mode = mode,
+                        label = shortLabel,
+                        icon = icon,
+                        isSelected = selectedMode == mode,
+                        isHorizontalCard = true,
+                        onClick = { onModeSelected(mode) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                options.forEach { (mode, shortLabel, icon) ->
+                    ThemeModeOptionCard(
+                        mode = mode,
+                        label = shortLabel,
+                        icon = icon,
+                        isSelected = selectedMode == mode,
+                        isHorizontalCard = false,
+                        onClick = { onModeSelected(mode) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeModeOptionCard(
+    mode: ThemeMode,
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    isHorizontalCard: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .heightIn(min = 56.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.RadioButton
+                selected = isSelected
+                contentDescription = "$label theme mode"
+            }
+            .testTag("theme_mode_${mode.name.lowercase()}"),
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        },
+        border = BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+            }
+        )
+    ) {
+        if (isHorizontalCard) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    textAlign = TextAlign.Center,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun DarkStyleOptionRow(
     style: DarkThemeStyle,
@@ -460,6 +641,10 @@ private fun DarkStyleOptionRow(
         } else {
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         },
+        border = BorderStroke(
+            width = if (isSelected) 1.5.dp else 0.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+        ),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -471,12 +656,14 @@ private fun DarkStyleOptionRow(
                 onClick = onSelect
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
                     text = style.displayName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = style.subtitle,
@@ -484,7 +671,6 @@ private fun DarkStyleOptionRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 swatches.forEach { color ->
                     Box(
@@ -500,6 +686,7 @@ private fun DarkStyleOptionRow(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PresetEditorDialog(
     initialPreset: CustomPreset?,
@@ -538,16 +725,19 @@ fun PresetEditorDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     FilterChip(
                         selected = targetType == "IMAGE",
                         onClick = { targetType = "IMAGE" },
-                        label = { Text("Image") }
+                        label = { Text("Image", maxLines = 1, softWrap = false) }
                     )
                     FilterChip(
                         selected = targetType == "PDF",
                         onClick = { targetType = "PDF" },
-                        label = { Text("PDF") }
+                        label = { Text("PDF", maxLines = 1, softWrap = false) }
                     )
                 }
 
@@ -567,12 +757,15 @@ fun PresetEditorDialog(
                         text = "Output Format",
                         style = MaterialTheme.typography.labelMedium
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         listOf("AUTO", "JPEG", "WEBP", "PNG").forEach { fmt ->
                             FilterChip(
                                 selected = imageFormat == fmt,
                                 onClick = { imageFormat = fmt },
-                                label = { Text(fmt) }
+                                label = { Text(fmt, maxLines = 1, softWrap = false) }
                             )
                         }
                     }
@@ -581,12 +774,15 @@ fun PresetEditorDialog(
                         text = "PDF Profile",
                         style = MaterialTheme.typography.labelMedium
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         listOf("LIGHT", "BALANCED", "STRONG").forEach { prof ->
                             FilterChip(
                                 selected = pdfProfile == prof,
                                 onClick = { pdfProfile = prof },
-                                label = { Text(prof) }
+                                label = { Text(prof, maxLines = 1, softWrap = false) }
                             )
                         }
                     }

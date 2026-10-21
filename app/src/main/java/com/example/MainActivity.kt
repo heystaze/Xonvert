@@ -33,17 +33,21 @@ import com.example.ui.home.HomeScreen
 import com.example.ui.home.HomeViewModel
 import com.example.ui.image.ImageCompressScreen
 import com.example.ui.image.ImageCompressViewModel
+import com.example.ui.image.ImageResizeConvertScreen
 import com.example.ui.image.ImageToolTab
 import com.example.ui.pdf.PdfCompressScreen
 import com.example.ui.pdf.PdfCompressViewModel
 import com.example.ui.pdf.PdfToolTab
+import com.example.ui.pdf.PdfUtilitiesScreen
 import com.example.ui.settings.SettingsScreen
 import com.example.ui.theme.XonvertTheme
 
 enum class XonvertScreen {
     HOME,
     COMPRESS_IMAGE,
+    IMAGE_RESIZE_CONVERT,
     COMPRESS_PDF,
+    PDF_UTILITIES,
     BATCH_COMPRESS,
     REQUIREMENTS_CHECKER,
     SETTINGS
@@ -109,7 +113,7 @@ fun XonvertApp(
                 },
                 onNavigateToImageResizeConvert = {
                     imageViewModel.setActiveTab(ImageToolTab.RESIZE_CONVERT)
-                    currentScreen = XonvertScreen.COMPRESS_IMAGE
+                    currentScreen = XonvertScreen.IMAGE_RESIZE_CONVERT
                 },
                 onNavigateToPdfCompress = {
                     pdfViewModel.setActiveTab(PdfToolTab.COMPRESS)
@@ -117,7 +121,7 @@ fun XonvertApp(
                 },
                 onNavigateToPdfUtilities = {
                     pdfViewModel.setActiveTab(PdfToolTab.UTILITIES)
-                    currentScreen = XonvertScreen.COMPRESS_PDF
+                    currentScreen = XonvertScreen.PDF_UTILITIES
                 },
                 onNavigateToBatchCompress = {
                     currentScreen = XonvertScreen.BATCH_COMPRESS
@@ -147,8 +151,22 @@ fun XonvertApp(
             )
         }
 
+        XonvertScreen.IMAGE_RESIZE_CONVERT -> {
+            ImageResizeConvertScreen(
+                viewModel = imageViewModel,
+                onNavigateBack = { currentScreen = XonvertScreen.HOME }
+            )
+        }
+
         XonvertScreen.COMPRESS_PDF -> {
             PdfCompressScreen(
+                viewModel = pdfViewModel,
+                onNavigateBack = { currentScreen = XonvertScreen.HOME }
+            )
+        }
+
+        XonvertScreen.PDF_UTILITIES -> {
+            PdfUtilitiesScreen(
                 viewModel = pdfViewModel,
                 onNavigateBack = { currentScreen = XonvertScreen.HOME }
             )

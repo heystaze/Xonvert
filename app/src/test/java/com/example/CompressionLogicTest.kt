@@ -278,4 +278,17 @@ class CompressionLogicTest {
         )
         assertFalse(failChecks.all { it.passed })
     }
+
+    @Test
+    fun `test dedicated XonvertScreen navigation destinations exist without redundancy`() {
+        val destinations = XonvertScreen.entries.map { it.name }.toSet()
+        assertTrue(destinations.contains("HOME"))
+        assertTrue(destinations.contains("COMPRESS_IMAGE"))
+        assertTrue(destinations.contains("IMAGE_RESIZE_CONVERT"))
+        assertTrue(destinations.contains("COMPRESS_PDF"))
+        assertTrue(destinations.contains("PDF_UTILITIES"))
+        assertTrue(destinations.contains("BATCH_COMPRESS"))
+        assertTrue(destinations.contains("REQUIREMENTS_CHECKER"))
+        assertTrue(destinations.contains("SETTINGS"))
+    }
 }
