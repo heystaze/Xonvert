@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Xonvert</string>
+    <string name="tagline">Compress files. Keep control.</string>
+    <string name="compress_images_title">Compress Image</string>
+    <string name="compress_images_desc">Target specific KB limits for forms &amp; applications</string>
+    <string name="compress_pdf_title">Compress PDF</string>
+    <string name="compress_pdf_desc">Downsample pages &amp; optimize streams locally</string>
+    <string name="batch_compress_title">Batch Compress</string>
+    <string name="batch_compress_desc">Process multiple files in one step</string>
+    <string name="recent_compressions">Recent Compressions</string>
+</resources>

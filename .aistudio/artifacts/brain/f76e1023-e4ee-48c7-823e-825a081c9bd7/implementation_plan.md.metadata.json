@@ -1,0 +1,6 @@
+{
+  "summary":  "Comprehensive implementation plan for Xonvert, a native offline Android file compressor for images and PDFs, featuring target-size bounded iterative search, native PDF downsampling, batch processing, and privacy-first local persistence.",
+  "updatedAt":  "2026-10-20T15:51:52.153772057Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
